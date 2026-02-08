@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Calculadora Profissional de Day Trade</title>
+
+<style>
+body {
+    background: #0b0f1a;
+    font-family: Arial, sans-serif;
+    color: #fff;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 40px auto;
+    background: #121826;
+    padding: 30px;
+    border-radius: 14px;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+label {
+    font-size: 14px;
+    color: #bfc7ff;
+}
+
+input, select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    background: #1a2035;
+    color: #fff;
+}
+
+input:focus, select:focus {
+    outline: none;
+    background: #232b45;
+}
+
+button {
+    width: 100%;
+    padding: 14px;
+    margin-top: 25px;
+    border: none;
+    border-radius: 10px;
+    background: #5865f2;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.resultado {
+    margin-top: 30px;
+    background: #1a2035;
+    padding: 20px;
+    border-radius: 12px;
+}
+
+table {
+    width: 100%;
+    margin-top: 20px;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 10px;
+    border-bottom: 1px solid #2b335a;
+    text-align: center;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h1>Calculadora Profissional de Day Trade</h1>
+
+<div class="grid">
+
+<div>
+<label>Capital total (R$)</label>
+<input id="capital" placeholder="R$ 0,00" oninput="mascaraMoeda(this)">
+</div>
+
+<div>
+<label>% da banca destinada à operação</label>
+<input id="percentualBanca" placeholder="Ex: 10">
+</div>
+
+<div>
+<label>Stop Gain (%)</label>
+<input id="stopGain" placeholder="Ex: 25">
+</div>
+
+<div>
+<label>Stop Loss (%)</label>
+<input id="stopLoss" placeholder="Ex: 12,5">
+</div>
+
+<div>
+<label>Alavancagem</label>
+<select id="alavancagem">
+<option value="1">Sem alavancagem</option>
+<option value="5">5x</option>
+<option value="10">10x</option>
+<option value="15">15x</option>
+<option value="20">20x</option>
+<option value="25">25x</option>
+<option value="50">50x</option>
+<option value="75">75x</option>
+<option value="100">100x</option>
+</select>
+</div>
+
+<div>
+<label>Trades por semana</label>
+<input id="tradesSemana" placeholder="Ex: 6">
+</div>
+
+<div>
+<label>Quantos trades são stop (semana)</label>
+<input id="stopsSemana" placeholder="Ex: 2">
+</div>
+
+<div>
+<label>Tempo do investimento</label>
+<input id="tempo" placeholder="Ex: 12">
+</div>
+
+<div>
+<label>Período</label>
+<select id="periodo">
+<option value="mes">Meses</option>
+<option value="ano">Anos</option>
+</select>
+</div>
+
+</div>
+
+<button onclick="calcular()">Calcular Resultado</button>
+
+<div class="resultado" id="resultado"></div>
+<table id="tabela"></table>
+
+</div>
+
+<script>
+function mascaraMoeda(input) {
+    let v = input.value.replace(/\D/g, '');
+    v = (v / 100).toFixed(2);
+    v = v.replace('.', ',');
+    v = v.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    input.value = 'R$ ' + v;
+}
+
+function moedaParaNumero(valor) {
+    return parseFloat(valor.replace('R$', '').replace(/\./g, '').replace(',', '.')) || 0;
+}
+
+function formatar(valor) {
+    return valor.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    });
+}
+
+function calcular() {
+
+    let capital = moedaParaNumero(document.getElementById('capital').value);
+    let percBanca = (parseFloat(document.getElementById('percentualBanca').value) || 0) / 100;
+    let stopGain = (parseFloat(document.getElementById('stopGain').value) || 0) / 100;
+    let stopLoss = (parseFloat(document.getElementById('stopLoss').value) || 0) / 100;
+
+    let tradesSemana = parseInt(document.getElementById('tradesSemana').value) || 0;
+    let stopsSemana = parseInt(document.getElementById('stopsSemana').value) || 0;
+
+    let tempo = parseInt(document.getElementById('tempo').value) || 0;
+    let periodo = document.getElementById('periodo').value;
+
+    let meses = periodo === 'ano' ? tempo * 12 : tempo;
+
+    let valorOperacao = capital * percBanca;
+
+    // ✅ LÓGICA FINANCEIRA CORRETA (SEM ALAVANCAGEM)
+    let ganhoPorOperacao = valorOperacao * stopGain;
+    let stopLossQuandoPego = valorOperacao * stopLoss;
+
+    let ganhosSemana = (tradesSemana - stopsSemana) * ganhoPorOperacao;
+    let perdasSemana = stopsSemana * stopLossQuandoPego;
+
+    let resultadoSemanal = ganhosSemana - perdasSemana;
+    let resultadoMensal = resultadoSemanal * 4;
+
+    let capitalAtual = capital;
+
+    let tabela = `
+    <tr>
+        <th>Mês</th>
+        <th>Resultado</th>
+        <th>Capital</th>
+    </tr>`;
+
+    for (let i = 1; i <= meses; i++) {
+        capitalAtual += resultadoMensal;
+        tabela += `
+        <tr>
+            <td>${i}</td>
+            <td>${formatar(resultadoMensal)}</td>
+            <td>${formatar(capitalAtual)}</td>
+        </tr>`;
+    }
+
+    document.getElementById('resultado').innerHTML = `
+        <b>Valor por operação:</b> ${formatar(valorOperacao)}<br>
+        <b>Ganho por operação:</b> ${formatar(ganhoPorOperacao)}<br>
+        <b>Stop loss quando pego:</b> ${formatar(stopLossQuandoPego)}<br><br>
+
+        <b>Resultado mensal:</b> ${formatar(resultadoMensal)}<br>
+        <b>Capital final:</b> ${formatar(capitalAtual)}
+    `;
+
+    document.getElementById('tabela').innerHTML = tabela;
+}
+</script>
+
+</body>
+</html>
